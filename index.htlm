@@ -1,0 +1,338 @@
+import React, { useState, useMemo } from 'react';
+import { Calculator, Info, Table, ChevronRight, DollarSign, Calendar, Percent, Landmark } from 'lucide-react';
+
+const App = () => {
+  // State variables
+  const [principal, setPrincipal] = useState(100000);
+  const [months, setMonths] = useState(12);
+  const [interestRate, setInterestRate] = useState(3.5);
+  const [loanType, setLoanType] = useState('ihtiyac'); // ihtiyac, tasit, konut
+  const [activeTab, setActiveTab] = useState('hesaplama'); // hesaplama, aciklama, plan
+
+  // Calculate tax multiplier based on loan type in Turkey
+  // İhtiyaç: %15 BSMV + %15 KKDF = %30 Vergi
+  // Taşıt: %5 BSMV + %15 KKDF = %20 Vergi
+  // Konut: Vergi yok (0)
+  const taxRate = useMemo(() => {
+    if (loanType === 'ihtiyac') return 0.30;
+    if (loanType === 'tasit') return 0.20;
+    return 0;
+  }, [loanType]);
+
+  // Calculations
+  const results = useMemo(() => {
+    const P = parseFloat(principal) || 0;
+    const n = parseInt(months) || 1;
+    const rawRate = parseFloat(interestRate) || 0;
+    
+    // Net (Aylık) faize vergilerin eklenmiş hali (Brüt Faiz)
+    const effectiveMonthlyRate = rawRate * (1 + taxRate);
+    const r = effectiveMonthlyRate / 100;
+
+    let monthlyPayment = 0;
+    let totalPayment = 0;
+    let totalInterest = 0;
+    let schedule = [];
+
+    if (P > 0 && n > 0) {
+      if (r > 0) {
+        // Eşit taksitli kredi (Anüite) formülü: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+        monthlyPayment = P * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      } else {
+        monthlyPayment = P / n;
+      }
+
+      totalPayment = monthlyPayment * n;
+      totalInterest = totalPayment - P;
+
+      // Ödeme Planı Oluşturma
+      let remainingPrincipal = P;
+      for (let i = 1; i <= n; i++) {
+        const interestPayment = remainingPrincipal * r;
+        const principalPayment = monthlyPayment - interestPayment;
+        remainingPrincipal -= principalPayment;
+        
+        schedule.push({
+          month: i,
+          payment: monthlyPayment,
+          principalPayment: principalPayment,
+          interestPayment: interestPayment,
+          remainingPrincipal: remainingPrincipal > 0 ? remainingPrincipal : 0
+        });
+      }
+    }
+
+    return {
+      monthlyPayment,
+      totalPayment,
+      totalInterest,
+      effectiveMonthlyRate,
+      schedule
+    };
+  }, [principal, months, interestRate, taxRate]);
+
+  // Format currency
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+      <div className="max-w-5xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+          <div className="bg-blue-100 p-3 rounded-xl">
+            <Landmark className="text-blue-600 w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Etkileşimli Kredi Hesaplama</h1>
+            <p className="text-slate-500">Bankaların faiz hesaplama mantığını sayılarla oynayarak keşfedin.</p>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Controls Panel (Left) */}
+          <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+            <h2 className="text-lg font-semibold border-b pb-2">Kredi Parametreleri</h2>
+            
+            {/* Kredi Türü */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Kredi Türü (Vergiler İçin)</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button 
+                  onClick={() => setLoanType('ihtiyac')}
+                  className={`py-2 text-sm rounded-lg border transition-colors ${loanType === 'ihtiyac' ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                >İhtiyaç</button>
+                <button 
+                  onClick={() => setLoanType('tasit')}
+                  className={`py-2 text-sm rounded-lg border transition-colors ${loanType === 'tasit' ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                >Taşıt</button>
+                <button 
+                  onClick={() => setLoanType('konut')}
+                  className={`py-2 text-sm rounded-lg border transition-colors ${loanType === 'konut' ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                >Konut</button>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {loanType === 'ihtiyac' && "Bankanın faizine %15 BSMV ve %15 KKDF vergisi eklenir."}
+                {loanType === 'tasit' && "Bankanın faizine %5 BSMV ve %15 KKDF vergisi eklenir."}
+                {loanType === 'konut' && "Konut kredilerinde vergi (BSMV/KKDF) yoktur."}
+              </p>
+            </div>
+
+            {/* Kredi Tutarı */}
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <label className="text-sm font-medium text-slate-700 flex items-center"><DollarSign className="w-4 h-4 mr-1 text-slate-400"/> Kredi Tutarı (TL)</label>
+                <span className="font-semibold text-blue-600">{formatCurrency(principal)}</span>
+              </div>
+              <input 
+                type="range" min="10000" max="1000000" step="5000" 
+                value={principal} onChange={(e) => setPrincipal(e.target.value)}
+                className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>10 Bin TL</span>
+                <span>1 Milyon TL</span>
+              </div>
+            </div>
+
+            {/* Vade */}
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <label className="text-sm font-medium text-slate-700 flex items-center"><Calendar className="w-4 h-4 mr-1 text-slate-400"/> Vade (Ay)</label>
+                <span className="font-semibold text-blue-600">{months} Ay</span>
+              </div>
+              <input 
+                type="range" min="1" max="120" step="1" 
+                value={months} onChange={(e) => setMonths(e.target.value)}
+                className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+              />
+               <div className="flex justify-between text-xs text-slate-400">
+                <span>1 Ay</span>
+                <span>120 Ay</span>
+              </div>
+            </div>
+
+            {/* Faiz Oranı */}
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <label className="text-sm font-medium text-slate-700 flex items-center"><Percent className="w-4 h-4 mr-1 text-slate-400"/> Banka Faiz Oranı (%)</label>
+                <span className="font-semibold text-blue-600">% {interestRate}</span>
+              </div>
+              <input 
+                type="range" min="0" max="8" step="0.05" 
+                value={interestRate} onChange={(e) => setInterestRate(e.target.value)}
+                className="w-full accent-blue-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>%0</span>
+                <span>%8.00</span>
+              </div>
+            </div>
+            
+          </div>
+
+          {/* Results & Explanations Panel (Right) */}
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
+            
+            {/* Tabs */}
+            <div className="flex border-b border-slate-100 bg-slate-50/50">
+              <button 
+                onClick={() => setActiveTab('hesaplama')}
+                className={`flex-1 py-4 text-sm font-medium flex items-center justify-center transition-colors ${activeTab === 'hesaplama' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+              >
+                <Calculator className="w-4 h-4 mr-2" /> Özet Sonuçlar
+              </button>
+              <button 
+                onClick={() => setActiveTab('aciklama')}
+                className={`flex-1 py-4 text-sm font-medium flex items-center justify-center transition-colors ${activeTab === 'aciklama' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+              >
+                <Info className="w-4 h-4 mr-2" /> Nasıl Hesaplanıyor?
+              </button>
+              <button 
+                onClick={() => setActiveTab('plan')}
+                className={`flex-1 py-4 text-sm font-medium flex items-center justify-center transition-colors ${activeTab === 'plan' ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+              >
+                <Table className="w-4 h-4 mr-2" /> Ödeme Planı
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="p-6 flex-1 overflow-y-auto">
+              
+              {/* Hesaplama Özeti Tab */}
+              {activeTab === 'hesaplama' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 text-white text-center shadow-md">
+                    <p className="text-blue-100 text-sm font-medium mb-1">Aylık Taksit Tutarınız</p>
+                    <h3 className="text-4xl font-bold tracking-tight">{formatCurrency(results.monthlyPayment)}</h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                      <p className="text-slate-500 text-xs uppercase tracking-wider font-semibold mb-1">Toplam Geri Ödeme</p>
+                      <p className="text-xl font-bold text-slate-800">{formatCurrency(results.totalPayment)}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                      <p className="text-slate-500 text-xs uppercase tracking-wider font-semibold mb-1">Toplam Faiz + Vergi</p>
+                      <p className="text-xl font-bold text-red-500">{formatCurrency(results.totalInterest)}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start space-x-3">
+                    <Info className="text-blue-500 w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-blue-900 font-medium">Biliyor muydunuz?</p>
+                      <p className="text-sm text-blue-800 mt-1">
+                        Bankanın size söylediği oran <strong>%{interestRate}</strong> olsa da, vergiler (BSMV ve KKDF) eklendiğinde bankanın formüle koyduğu gerçek (efektif) faiz oranı <strong>%{results.effectiveMonthlyRate.toFixed(4)}</strong> olur. 
+                        Hesaplamalar bu oran üzerinden yapılır.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Nasıl Hesaplanıyor Tab */}
+              {activeTab === 'aciklama' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <h3 className="text-lg font-bold text-slate-800 border-b pb-2">Hesaplamanın Arka Planı</h3>
+                  <p className="text-sm text-slate-600">
+                    Sistem <strong>"Eşit Taksitli Kredi"</strong> formülünü kullanır. Hedef, vade boyunca her ay cüzdanınızdan aynı tutarın (<strong>{formatCurrency(results.monthlyPayment)}</strong>) çıkmasını sağlamaktır.
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Step 1 */}
+                    <div className="flex">
+                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold mr-4">1</div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">Vergili Faizin Bulunması</h4>
+                        <p className="text-sm text-slate-600 mt-1">
+                          Türkiye'de tüketici kredilerinde faize vergi eklenir. <br/>
+                          Net Faiz: %{interestRate} <br/>
+                          Vergi Oranı: %{taxRate * 100} <br/>
+                          Kullanılan Brüt Faiz = %{interestRate} + (%{interestRate} * %{taxRate * 100}) = <strong>%{results.effectiveMonthlyRate.toFixed(4)}</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="flex">
+                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold mr-4">2</div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">İlk Ayın Faizinin Kesilmesi</h4>
+                        <p className="text-sm text-slate-600 mt-1">
+                          1. ay, bankaya tam <strong>{formatCurrency(principal)}</strong> borcunuz var. Banka önce içerideki parası için faizini alır.<br/>
+                          Faiz = {formatCurrency(principal)} * %{results.effectiveMonthlyRate.toFixed(4)} = <strong className="text-red-500">{formatCurrency(results.schedule[0]?.interestPayment || 0)}</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="flex">
+                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold mr-4">3</div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">Kalanın Anaparadan Düşülmesi</h4>
+                        <p className="text-sm text-slate-600 mt-1">
+                          Siz <strong>{formatCurrency(results.monthlyPayment)}</strong> taksit ödediniz. Banka faizini ({formatCurrency(results.schedule[0]?.interestPayment || 0)}) içinden aldı.<br/>
+                          Geriye kalan <strong className="text-green-600">{formatCurrency(results.schedule[0]?.principalPayment || 0)}</strong> anapara borcunuzdan düşülür.<br/>
+                          Yeni borcunuz: <strong>{formatCurrency(results.schedule[0]?.remainingPrincipal || 0)}</strong> olur.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 4 */}
+                    <div className="flex">
+                      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold mr-4">4</div>
+                      <div>
+                        <h4 className="font-semibold text-slate-800">Döngünün Tekrarı</h4>
+                        <p className="text-sm text-slate-600 mt-1">
+                          2. ay, faiz artık {formatCurrency(principal)} üzerinden değil, kalan borcunuz olan {formatCurrency(results.schedule[0]?.remainingPrincipal || 0)} üzerinden hesaplanır. Borç azaldığı için 2. ay ödediğiniz faiz azalır, anaparadan düşülen tutar artar!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ödeme Planı Tab */}
+              {activeTab === 'plan' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-slate-600">
+                      <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-3 rounded-tl-lg">Ay</th>
+                          <th className="px-4 py-3 text-right">Taksit</th>
+                          <th className="px-4 py-3 text-right">Anapara Ödemesi</th>
+                          <th className="px-4 py-3 text-right">Faiz (+Vergi)</th>
+                          <th className="px-4 py-3 text-right rounded-tr-lg">Kalan Borç</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {results.schedule.map((row) => (
+                          <tr key={row.month} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-3 font-medium text-slate-900">{row.month}</td>
+                            <td className="px-4 py-3 text-right font-medium">{formatCurrency(row.payment)}</td>
+                            <td className="px-4 py-3 text-right text-green-600">{formatCurrency(row.principalPayment)}</td>
+                            <td className="px-4 py-3 text-right text-red-500">{formatCurrency(row.interestPayment)}</td>
+                            <td className="px-4 py-3 text-right text-slate-900">{formatCurrency(row.remainingPrincipal)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
