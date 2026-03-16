@@ -20,6 +20,98 @@
         .tab-content.active {
             display: block;
         }
+
+        /* Dark Mode */
+        [data-theme="dark"] {
+            color-scheme: dark;
+        }
+        [data-theme="dark"] body,
+        [data-theme="dark"] {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        [data-theme="dark"] .bg-white,
+        [data-theme="dark"] .bg-slate-50,
+        [data-theme="dark"] .bg-slate-50\/50 {
+            background-color: #1e293b !important;
+        }
+        [data-theme="dark"] .border-slate-100,
+        [data-theme="dark"] .border-slate-50 {
+            border-color: #334155 !important;
+        }
+        [data-theme="dark"] .text-slate-900,
+        [data-theme="dark"] .text-slate-800,
+        [data-theme="dark"] .text-slate-700 {
+            color: #e2e8f0 !important;
+        }
+        [data-theme="dark"] .text-slate-600,
+        [data-theme="dark"] .text-slate-500,
+        [data-theme="dark"] .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .bg-blue-50 {
+            background-color: #1e3a5f !important;
+        }
+        [data-theme="dark"] .border-blue-100 {
+            border-color: #1e40af !important;
+        }
+        [data-theme="dark"] .text-blue-900,
+        [data-theme="dark"] .text-blue-800 {
+            color: #93c5fd !important;
+        }
+        [data-theme="dark"] .hover\:bg-slate-50:hover {
+            background-color: #334155 !important;
+        }
+        [data-theme="dark"] .bg-blue-100 {
+            background-color: #1e3a5f !important;
+        }
+        [data-theme="dark"] input[type="range"] {
+            background-color: #334155;
+        }
+        [data-theme="dark"] .shadow-sm {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                font-size: 12pt;
+            }
+            .lg\:col-span-1,
+            #dark-mode-toggle,
+            #btn-export-csv,
+            #tabs-container {
+                display: none !important;
+            }
+            .lg\:col-span-2 {
+                grid-column: 1 / -1;
+            }
+            .tab-content {
+                display: block !important;
+            }
+            #tab-aciklama {
+                display: none !important;
+            }
+            .shadow-sm, .shadow-md {
+                box-shadow: none !important;
+            }
+            .rounded-2xl, .rounded-xl {
+                border-radius: 0 !important;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            table th, table td {
+                border: 1px solid #ccc;
+                padding: 4px 8px;
+            }
+            tr {
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 min-h-screen">
@@ -32,10 +124,14 @@
             <div class="bg-blue-100 p-3 rounded-xl text-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"></line><line x1="6" y1="18" x2="6" y2="11"></line><line x1="10" y1="18" x2="10" y2="11"></line><line x1="14" y1="18" x2="14" y2="11"></line><line x1="18" y1="18" x2="18" y2="11"></line><polygon points="12 2 20 7 4 7"></polygon></svg>
             </div>
-            <div>
+            <div class="flex-1">
                 <h1 class="text-2xl font-bold text-slate-900">Etkileşimli Kredi Hesaplama</h1>
                 <p class="text-slate-500">Bankaların faiz hesaplama mantığını sayılarla oynayarak keşfedin.</p>
             </div>
+            <button id="dark-mode-toggle" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors" title="Tema Degistir">
+                <svg id="icon-sun" class="w-6 h-6 text-slate-600 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <svg id="icon-moon" class="w-6 h-6 text-slate-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
         </div>
 
         <!-- Main Content Grid -->
@@ -105,6 +201,7 @@
                         <span>%8.00</span>
                     </div>
                 </div>
+                <div id="validation-errors" class="hidden mt-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm space-y-1"></div>
             </div>
 
             <!-- Results & Explanations Panel (Right) -->
@@ -237,6 +334,9 @@
                                 </tbody>
                             </table>
                         </div>
+                        <button id="btn-export-csv" class="hidden mt-4 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                            CSV Olarak Indir
+                        </button>
                     </div>
 
                 </div>
@@ -321,6 +421,7 @@
         let taxRate = 0;
         if (state.loanType === 'ihtiyac') taxRate = 0.30;
         if (state.loanType === 'tasit') taxRate = 0.20;
+        if (state.loanType === 'konut') taxRate = 0;
 
         const effectiveMonthlyRate = rawRate * (1 + taxRate);
         const r = effectiveMonthlyRate / 100;
@@ -344,15 +445,23 @@
             let remainingPrincipal = P;
             for (let i = 1; i <= n; i++) {
                 const interestPayment = remainingPrincipal * r;
-                const principalPayment = monthlyPayment - interestPayment;
+                let principalPayment = monthlyPayment - interestPayment;
+                let payment = monthlyPayment;
+
+                // Fix floating point rounding on last payment
+                if (i === n) {
+                    principalPayment = remainingPrincipal;
+                    payment = principalPayment + interestPayment;
+                }
+
                 remainingPrincipal -= principalPayment;
-                
+
                 schedule.push({
                     month: i,
-                    payment: monthlyPayment,
+                    payment: payment,
                     principalPayment: principalPayment,
                     interestPayment: interestPayment,
-                    remainingPrincipal: remainingPrincipal > 0 ? remainingPrincipal : 0
+                    remainingPrincipal: Math.abs(remainingPrincipal) < 0.01 ? 0 : remainingPrincipal
                 });
             }
         }
@@ -388,6 +497,21 @@
         if (state.loanType === 'ihtiyac') elements.loanTaxInfo.textContent = "Bankanın faizine %15 BSMV ve %15 KKDF vergisi eklenir.";
         if (state.loanType === 'tasit') elements.loanTaxInfo.textContent = "Bankanın faizine %5 BSMV ve %15 KKDF vergisi eklenir.";
         if (state.loanType === 'konut') elements.loanTaxInfo.textContent = "Konut kredilerinde vergi (BSMV/KKDF) yoktur.";
+
+        // Validate inputs
+        const validationErrors = [];
+        if (parseFloat(state.principal) <= 0) validationErrors.push('Kredi tutari 0 veya negatif olamaz.');
+        if (parseInt(state.months) <= 0) validationErrors.push('Vade 0 veya negatif olamaz.');
+        if (parseFloat(state.interestRate) <= 0) validationErrors.push('Faiz orani 0 veya negatif olamaz.');
+
+        const errBox = document.getElementById('validation-errors');
+        if (validationErrors.length > 0) {
+            errBox.innerHTML = validationErrors.map(e => `<p>${e}</p>`).join('');
+            errBox.classList.remove('hidden');
+        } else {
+            errBox.classList.add('hidden');
+            errBox.innerHTML = '';
+        }
 
         // Calculate
         const results = calculate();
@@ -435,6 +559,14 @@
             `;
         });
         elements.tableBody.innerHTML = tableHTML;
+
+        // Show/hide CSV export button
+        const csvBtn = document.getElementById('btn-export-csv');
+        if (results.schedule.length > 0) {
+            csvBtn.classList.remove('hidden');
+        } else {
+            csvBtn.classList.add('hidden');
+        }
     };
 
     // Tab Switching Logic
@@ -487,6 +619,62 @@
         btn.addEventListener('click', (e) => {
             switchTab(e.currentTarget.dataset.tab);
         });
+    });
+
+    // Dark Mode
+    const applyTheme = (dark) => {
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.getElementById('icon-sun').classList.toggle('hidden', !dark);
+        document.getElementById('icon-moon').classList.toggle('hidden', dark);
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+    };
+
+    // Initialize theme: check localStorage first, then system preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        applyTheme(savedTheme === 'dark');
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        applyTheme(true);
+    }
+
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        applyTheme(!isDark);
+    });
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches);
+        }
+    });
+
+    // CSV Export
+    document.getElementById('btn-export-csv').addEventListener('click', () => {
+        const results = calculate();
+        if (results.schedule.length === 0) return;
+
+        const headers = ['Ay', 'Aylik Taksit', 'Anapara', 'Faiz', 'Kalan Anapara'];
+        const rows = results.schedule.map(row => [
+            row.month,
+            row.payment.toFixed(2),
+            row.principalPayment.toFixed(2),
+            row.interestPayment.toFixed(2),
+            row.remainingPrincipal.toFixed(2)
+        ]);
+
+        let csv = headers.join(',') + '\n';
+        rows.forEach(r => { csv += r.join(',') + '\n'; });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'kredi-tablosu.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     });
 
     // Initial Render
